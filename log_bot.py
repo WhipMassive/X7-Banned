@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import discord
 from discord.ext import commands, tasks
-import json
 import os
 
 # ==============================
@@ -11,23 +10,12 @@ TOKEN = os.environ.get("TOKEN")
 PREFIX = "!"
 VOICE_CHANNEL_ID = 1508961875109482737      # ← SES KANALI ID'Nİ YAZ
 LOG_CHANNEL_ID = 1510274969144262806        # ← LOG KANALININ ID'Sİ
-BANLI_ROL_ADI = "banlı"           # ← ROL ADINI KONTROL ET (büyük/küçük harf önemli)
+BANLI_ROL_ADI = "banlı"           # ← ROL ADINI KONTROL ET
 
-# ==============================
-# VERİ DOSYASI
-# ==============================
-BANLI_DOSYA = "banli_kullanicilar.json"
-
-def load_banli():
-    try:
-        with open(BANLI_DOSYA, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_banli(data):
-    with open(BANLI_DOSYA, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+# Banlı kullanıcı ID listesi — buraya ekle/çıkar
+BANLI_KULLANICILAR = [
+    1345376000468455425,
+]
 
 # ==============================
 # BOT KURULUMU
@@ -53,15 +41,6 @@ async def on_member_remove(member):
     banli_rol = discord.utils.get(member.guild.roles, name=BANLI_ROL_ADI)
     has_banli = banli_rol in member.roles if banli_rol else False
 
-    if has_banli:
-        banli = load_banli()
-        banli[str(member.id)] = {
-            "isim": str(member),
-            "id": member.id
-        }
-        save_banli(banli)
-        print(f"⚠️ Banlı kullanıcı ayrıldı: {member} — kaydedildi.")
-
     if log_channel:
         embed = discord.Embed(
             title="📤 Kullanıcı Ayrıldı",
@@ -78,10 +57,7 @@ async def on_member_remove(member):
 # ==============================
 @bot.event
 async def on_member_join(member):
-    banli = load_banli()
-    user_id = str(member.id)
-
-    if user_id in banli:
+    if member.id in BANLI_KULLANICILAR:
         banli_rol = discord.utils.get(member.guild.roles, name=BANLI_ROL_ADI)
         if banli_rol:
             await member.add_roles(banli_rol, reason="Banlı kullanıcı geri döndü — otomatik rol")
