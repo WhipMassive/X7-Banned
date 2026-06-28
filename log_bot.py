@@ -14,6 +14,10 @@ LOG_CHANNEL_ID = 1510274969144262806
 BANLI_ROL_ADI = "banlı"
 BANLI_DOSYA = "banli_kullanicilar.json"
 
+# Sadece bu kullanıcıya "New Member" dışında rol verilirse otomatik geri alınır
+KORUNAN_KULLANICI_ID = 813403282684116993
+NEW_MEMBER_ROL_ADI = "New Member"
+
 # ==============================
 # JSON'DAN YÜKLE
 # ==============================
@@ -42,6 +46,48 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 async def on_ready():
     print(f"✅ Log botu açıldı: {bot.user}")
     stay_in_voice.start()
+
+# ==============================
+# KORUNAN KULLANICI - SADECE NEW MEMBER ROLÜ
+# ==============================
+@bot.event
+async def on_member_update(before, after):
+    if after.id != KORUNAN_KULLANICI_ID:
+        return
+
+    new_member_rol = discord.utils.get(after.guild.roles, name=NEW_MEMBER_ROL_ADI)
+    if not new_member_rol:
+        print(f"❌ '{NEW_MEMBER_ROL_ADI}' rolü bulunamadı!")
+        return
+
+    # Yeni eklenen roller (before'da yok, after'da var)
+    eklenen_roller = [r for r in after.roles if r not in before.roles]
+    # New Member dışında eklenen rol var mı?
+    izinsiz_roller = [r for r in eklenen_roller if r.id != new_member_rol.id]
+
+    if izinsiz_roller:
+        try:
+            await after.remove_roles(*izinsiz_roller, reason="Korunan kullanıcıya izinsiz rol verildi - otomatik geri alındı")
+            print(f"🚫 {after} kullanıcısından izinsiz roller alındı: {[r.name for r in izinsiz_roller]}")
+        except discord.Forbidden:
+            print(f"❌ İzinsiz rolleri alamadım, yetkim yok! ({after})")
+
+        if new_member_rol not in after.roles:
+            try:
+                await after.add_roles(new_member_rol, reason="Korunan kullanıcıya New Member rolü geri verildi")
+                print(f"✅ {after} kullanıcısına {NEW_MEMBER_ROL_ADI} rolü geri verildi.")
+            except discord.Forbidden:
+                print(f"❌ {NEW_MEMBER_ROL_ADI} rolünü veremedim, yetkim yok! ({after})")
+
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            embed = discord.Embed(title="🚫 İzinsiz Rol Engellendi", color=0xff0000)
+            embed.add_field(name="Kullanıcı", value=f"{after.mention} ({after})", inline=False)
+            embed.add_field(name="ID", value=str(after.id), inline=True)
+            embed.add_field(name="Alınan Roller", value=", ".join([r.name for r in izinsiz_roller]), inline=False)
+            embed.add_field(name="İşlem", value=f"⚠️ {NEW_MEMBER_ROL_ADI} rolü geri verildi", inline=True)
+            embed.set_thumbnail(url=after.display_avatar.url)
+            await log_channel.send(embed=embed)
 
 # ==============================
 # SUNUCUDAN AYRILANLAR
