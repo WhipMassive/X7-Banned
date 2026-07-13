@@ -15,7 +15,7 @@ BANLI_ROL_ADI = "banlı"
 BANLI_DOSYA = "banli_kullanicilar.json"
 
 # Sadece bu kullanıcıya "New Member" dışında rol verilirse otomatik geri alınır
-KORUNAN_KULLANICI_ID = 813403282684116993
+KORUNAN_KULLANICI_ID =
 NEW_MEMBER_ROL_ADI = "New Member"
 
 # ==============================
